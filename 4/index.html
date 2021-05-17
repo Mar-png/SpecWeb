@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>asd</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript">
+    </script>
+    <!--
+Инициализируйте карту (современную), на которой с помощью стрелок проиллюстрируйте маршрут торгового пути  «великий шелковый путь», с указанием современных населенных пунктов, лежащих на их пути. 
+    -->
+    <script type="text/javascript">
+
+        ymaps.ready(init);
+
+        function init() {
+            var myMap = new ymaps.Map("map", {
+                center: [39.266, 68.071],
+                zoom: 4
+            });
+
+            var myPolyline = new ymaps.GeoObject({
+                geometry: {
+                    type: "LineString",
+                    coordinates: [
+                    [34.620202, 112.453926],
+                    [34.2578, 108.8999],
+                    [37.9106, 102.6329],
+                    [42.9343, 89.1822],
+                    [43.037, 83.979],
+                    [40.52861, 70.9425],
+                    [39.6459, 66.9596],
+                    [37.6628028, 62.1925194],
+                    [35.95083, 54.11278],
+                    [33.0936111, 44.5808306],
+                    [34.7475, 40.73]
+                ]}
+            });
+
+            myMap.geoObjects.add(myPolyline)
+        }
+    </script>
+</head>
+<body>
+    <div id="map" style="width: 1300px; height: 650px;"></div>
+</body>
+</html>z

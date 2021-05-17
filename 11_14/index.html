@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .visually-hidden {
+          position: absolute !important;
+          clip: rect(1px 1px 1px 1px); /* IE6, IE7 */
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 0 !important;
+          border: 0 !important;
+          height: 1px !important;
+          width: 1px !important;
+          overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <div
+        id="div-for-aria-reader"
+        class="visually-hidden"
+        role="status"
+        aria-live="polite"
+    ></div>
+
+    <div class="control-wrapper">
+        <input type="button" id="button-start-stop" value="start/stop" onclick="switchAudioPlayback();" />
+        <input type="button" id="button-prev" value="prev" onclick="playPrevMediaFromQueue();" />
+        <input type="button" id="button-minus-10-sec" value="-10 sec"
+            onclick="plusTimeToCurrnetAudioPlayerTime(-10);" />
+        <input type="range" id="seek-bar" min="0" max="100" value="0" onchange="setAudioTimeByInputRange(value);">
+        <input type="text" id="timeshower" disabled />
+        <input type="button" id="button-plus-10-sec" value="+10 sec" onclick="plusTimeToCurrnetAudioPlayerTime(10);" />
+        <input type="button" id="button-next" value="next" onclick="playNextMediaFromQueue();" />
+        <input type="button" id="button-mute" value="mute" onclick="switchMute();" />
+    </div>
+    <div id="some-more-control-wrapper">
+        <input type="button" id="button-add-media" value="add new media"
+            onclick="document.getElementById('media-file-input').click();" />
+        <input type="file" id="media-file-input" name="name" style="display: none;" type="media/*" onchange="addNewMediaFiles();"/>
+    </div>
+    <div id="table-wrapper">
+        <table id="media-order">
+            <tr>
+                <th>Status</th>
+                <th>Name</th>
+                <th>Size</th>
+                <th>Control</th>
+            </tr>
+        </table>
+    </div>
+    <script type="text/javascript">
+        //+++VARS
+        let audioPlayer = null;
+        let curMedia = null;
+        let mediaQueue = [];
+        //---VARS
+
+
+        //+++FUNCS
+
+        function setAccessibilityMessage(message) {
+            document.getElementById("div-for-aria-reader").innerHTML = message;
+        }
+
+        function plusTimeToCurrnetAudioPlayerTime(time) {
+            if (curMedia != null && audioPlayer != null) {
+                audioPlayer.currentTime = audioPlayer.currentTime + time;
+                setAccessibilityMessage("Добавленно " + time + " секунд.");
+            } else {
+                console.log("Нет текущей записи");
+                setAccessibilityMessage("Нет текущей записи.");
+            }
+        }
+
+
+        function setAudioTimeByInputRange(value) {
+            console.log(value.toString());
+            if (audioPlayer != null) {
+                audioPlayer.currentTime = parseInt(value) * (audioPlayer.duration / document.getElementById("seek-bar").max)
+                setAccessibilityMessage("Установленно текущее время: " + audioPlayer.currentTime + ".");
+            }
+        }
+
+
+        function moveMediaFileOnQueue(file, dir) {
+            let i = mediaQueue.indexOf(file);
+            if (i == -1) {
+                throw "Не найден файл в mediaQueue";
+            } else if (dir == "up") {
+                if (i < 1) {
+                    return;
+                }
+                let willBeMovedFile = mediaQueue.splice(i, 1);
+                mediaQueue.splice(i - 1, 0, willBeMovedFile[0]);
+
+                setAccessibilityMessage("Файл " + " поднят в очереди.");
+            } else if (dir == "down") {
+                if (i > mediaQueue.length - 1) {
+                    return;
+                }
+                let willBeMovedFile = mediaQueue.splice(i, 1);
+                mediaQueue.splice(i + 1, 0, willBeMovedFile[0]);
+                
+                setAccessibilityMessage("Файл " + " опущен в очереди.");
+            } else {
+                throw "Нужно нормальное направление.";
+            }
+        }
+
+
+        function sec2time(timeInSeconds) {
+            let pad = function (num, size) { return ('000' + num).slice(size * -1); },
+                time = parseFloat(timeInSeconds).toFixed(3),
+                hours = Math.floor(time / 60 / 60),
+                minutes = Math.floor(time / 60) % 60,
+                seconds = Math.floor(time - minutes * 60),
+                milliseconds = time.slice(-3);
+            return pad(hours, 2) + ':' + pad(minutes, 2) + ':' + pad(seconds, 2) + '.' + pad(milliseconds, 3);
+        }
+
+
+        function createAudio(file) {
+            let newAudio = new Audio(file.blob);
+            newAudio.ontimeupdate = (e) => {
+                document.getElementById("timeshower").value = sec2time(newAudio.currentTime);
+                document.getElementById("seek-bar").value = (newAudio.currentTime / newAudio.duration) * 100;
+            }
+            newAudio.onended = () => {
+                playNextMediaFromQueue();
+            }
+            return newAudio;
+        }
+
+
+        function addNewMediaFiles() {
+            try {
+                let media_file_input = document.getElementById("media-file-input");
+                for (let i = 0; i < media_file_input.files.length; i++) {
+                    let file = media_file_input.files[i];
+                    let reader = new FileReader();
+                    reader.onloadend = () => {
+                        addNewMediaFile(reader.result, file);
+                    }
+                    console.log(file);
+                    reader.readAsDataURL(file);
+                    setAccessibilityMessage("Трек добавлен.")
+                }
+            } catch (error) {
+                console.log("Какая то шляпа в addMediaFiles. Метнись, разберись.");
+            }
+        }
+
+
+        function updateMediaFileQueueInDOM() {
+            let table = document.getElementById("media-order");
+            let tds = table.querySelectorAll("tr");
+            if (tds.length > 1) {
+                for (let i = 1; i < tds.length; i++) {
+                    table.removeChild(tds[i]);
+                }
+            }
+
+            let tr, td, but;
+            for (let i in mediaQueue) {
+                let media = mediaQueue[i]
+                tr = document.createElement("tr");
+                    tr.id = mediaQueue[i].name;
+                table.append(tr);
+
+                td = document.createElement("td");
+                    td.innerHTML = "";
+                tr.append(td);
+
+                td = document.createElement("td");
+                    td.innerHTML = media.name;
+                tr.append(td);
+
+                td = document.createElement("td");
+                    td.innerHTML = media.size;
+                tr.append(td);
+
+                td = document.createElement("td");
+                    but = document.createElement("input");
+                        but.type = "button";
+                        but.value = "delete";
+                        but.onclick = () => {
+                            removeMediaFile(media);
+                        };
+                    td.append(but);
+                        
+                    but = document.createElement("input");
+                        but.type = "button";
+                        but.value = "up";
+                        but.onclick = () => {
+                            moveMediaFileOnQueue(media, "up");
+                            updateMediaFileQueueInDOM();
+                        };
+                    td.append(but);
+                        
+                    but = document.createElement("input");
+                        but.type = "button";
+                        but.value = "down";
+                        but.onclick = () => {
+                            moveMediaFileOnQueue(media, "down");
+                            updateMediaFileQueueInDOM();
+                        };
+                    td.append(but);
+                tr.append(td);
+            }
+        }
+
+
+        function addNewMediaFile(blob, file) {
+            file.blob = blob;
+            mediaQueue.push(file);
+            updateMediaFileQueueInDOM();
+        }
+
+
+        function removeMediaFile(file) {
+            let i = mediaQueue.indexOf(file);
+            if (i != -1) {
+                let willBeRemovedFile = mediaQueue.splice(i, 1);
+                for (let i in willBeRemovedFile) {
+                    if (curMedia == willBeRemovedFile[i]) {
+                        resetCurrentMedia();
+                    }
+                    let tableRow = document.getElementById(willBeRemovedFile[i].name);
+                    tableRow.parentElement.removeChild(tableRow);
+                }
+            } else {
+                console.log("Что то пошло не так в removeMediaFile")
+            }
+        }
+
+
+        function changeCurrentMedia(indexOfMedia) {
+            curMedia = mediaQueue[indexOfMedia];
+            if (audioPlayer != null) {
+                audioPlayer.pause();
+            }
+            audioPlayer = createAudio(curMedia);
+            audioPlayer.play();
+        }
+
+
+        function playPrevMediaFromQueue() {
+            let indexOfNextMedia = mediaQueue.indexOf(curMedia);
+            if (indexOfNextMedia >= 0 ) {
+                changeCurrentMedia(indexOfNextMedia - 1);
+                setAccessibilityMessage("Зупещен предыдущий трек.");
+            } else {
+                resetCurrentMedia();
+            }
+        }
+
+
+        function resetCurrentMedia() {
+            curMedia = null;
+            if (audioPlayer != null) {
+                audioPlayer.pause();
+                audioPlayer = null;
+            }
+            document.getElementById("seek-bar").value = 0;
+            document.getElementById("timeshower").value = "";
+            setAccessibilityMessage("Воспроизведение сброшенно.");
+        }
+
+
+        function playNextMediaFromQueue() {
+            let indexOfNextMedia = mediaQueue.indexOf(curMedia);
+            if (indexOfNextMedia < mediaQueue.length - 1) {
+                changeCurrentMedia(indexOfNextMedia + 1);
+            } else {
+                resetCurrentMedia();
+            }
+        }
+
+
+        function switchAudioPlayback() {
+            if (curMedia == null) {
+                if (mediaQueue.length != 0) {
+                    changeCurrentMedia(0);
+                    setAccessibilityMessage("Зупещен первый трек.");
+                } else {
+                    console.log("Очередь пуста.");
+                    setAccessibilityMessage("Очередь пуста.");
+                }
+            } else {
+                if (audioPlayer.paused) {
+                    audioPlayer.play();
+                    setAccessibilityMessage("Трек продолжен.");
+                }
+                else {
+                    audioPlayer.pause();
+                    setAccessibilityMessage("Трек остановлен.");
+                }
+            }
+        }
+
+
+        function switchMute() {
+            audioPlayer.muted = !audioPlayer.muted;
+            setAccessibilityMessage("Звук трека отключен.");
+        }
+    //---FUNCS
+    </script>
+</body>
+
+</html>
