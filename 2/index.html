@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+</head>
+
+<body>
+    <button id="shower">Показать результат</button>
+
+    <img id="map"></img>
+
+    <table id="table">
+
+    </table>
+
+    <script>
+        let mapURL = `https://static-maps.yandex.ru/1.x/?ll=33.2860,52.9612&size=650,450&z=5&l=map&pl=31.3294,53.1122,33.4965,54.0255,35.4418,53.0875,34.9467,52.3468,34.3093,51.8884,33.7916,52.3448,31.8245,52.0476,31.3294,53.1122`
+        let weatherURL = `https://api.openweathermap.org/data/2.5/box/city?bbox=31.0509,53.4438,35.8951,52.2154,10&appid=e5b828ef31bbf0b0d2f12becd96fc3b9`
+
+        function getRandomCoords() {
+            return {
+                lat: Math.random() * (2 - 77) + 77,
+                lon: Math.random() * (9 - 169) + 169
+            };
+        }
+
+        document.getElementById("shower").onclick = () => {
+            var xhr = new XMLHttpRequest();
+            xhr.open('get', weatherURL, false);
+            xhr.send();
+            if (xhr.status == 200) {
+
+                let thead = document.createElement('thead');
+                thead.innerHTML = `
+                    <tr>
+                        <th>Время</th>
+                        <th>Название</th>
+                        <th>Соокрдинаты</th>
+                        <th>Средняя температура</th>
+                        <th>Скорость ветра</th>
+                        <th>Погода</th>
+                    </tr>
+                `;
+                    
+                let table = document.getElementById("table");
+                table.innerHTML = "";
+                table.appendChild(thead);
+
+                let json = JSON.parse(xhr.responseText);
+                let tbody = document.createElement("tbody");
+                for (let i in json.list) {
+                    var dt = new Date(json.list[i].dt * 1000);
+                    let name = json.list[i].name;
+                    let coords = json.list[i].coord;
+                    let avrgtemp = json.list[i].main.temp;
+                    let windSpeed = json.list[i].wind.speed;
+                    let weather = json.list[i].weather[0].main;
+
+                    tbody.innerHTML += `
+                    <tr>
+                        <td>${dt.toString()}</td>
+                        <td>${name}</td>
+                        <td>${coords.Lon} ${coords.Lat}</td>
+                        <td>${avrgtemp}</td>
+                        <td>${windSpeed}</td>
+                        <td>${weather}</td>
+                    </tr>
+                    `;
+                }
+                table.appendChild(tbody);
+
+                document.getElementById("map").src = mapURL;
+            }
+            else {
+                console.log(xhr.status + ': ' + xhr.statusText)
+            }
+        }
+
+    </script>
+</body>
+
+</html>
