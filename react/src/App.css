@@ -1,0 +1,56 @@
+/* .btn-accessable {
+  box-sizing: border-box;
+  background-color: transparent;
+
+  line-height: 1;
+  text-decoration: none;
+  text-align: center;
+
+  border: 2px solid black;
+  color: black;
+  box-shadow: 0 0 40px 40px white inset, 0 0 0 0 white;
+  transition: 150ms;
+}
+
+.btn-accessable:hover {
+  font-weight: bolder;
+  color: black;
+  outline: 0;
+}
+
+.btn-accessable:active:hover {
+  color: black;
+  box-shadow: 0 0 10px 4px black;
+  transition: 50ms;
+}
+
+.srch-accessable:hover {
+  border: 1px solid black;
+}
+
+.srch-accessable::placeholder {
+  color: black;
+  opacity: 1;
+}
+
+.srch-accessable:focus {
+  padding-left: 3%;
+  padding-right: 3%;
+  border: 1px solid black;
+  box-shadow: 0 0 10px 4px black;
+  transition: 250ms;
+}
+
+.srch-accessable:focus::placeholder {
+  opacity: 0.25;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  clip: rect(1px, 1px, 1px, 1px);
+  padding: 0 !important;
+  border: 0 !important;
+  height: 1px !important;
+  width: 1px !important;
+  overflow: hidden;
+} */
